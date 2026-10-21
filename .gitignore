@@ -1,0 +1,13 @@
+node_modules/
+coverage/
+dist/
+pack/
+.vitest/
+*.log
+*.tgz
+*.tsbuildinfo
+.DS_Store
+.idea
+.env
+.env.*
+.npmrc

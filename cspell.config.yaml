@@ -1,0 +1,26 @@
+version: "0.2"
+useGitignore: true
+ignorePaths:
+  - .git/
+  - package-lock.json
+  - LICENSE
+words:
+  - ALIYUN
+  - apikey
+  - attw
+  - bearertokenauth
+  - BLRP
+  - charsets
+  - clickhouse
+  - clickstack
+  - esac
+  - hyperdx
+  - nvmrc
+  - publint
+  - serviceinstance
+  - startswith
+  - TENCENTCLOUD
+  - undici
+  - unstub
+  - vitest
+  - Winson
