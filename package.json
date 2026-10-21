@@ -1,0 +1,116 @@
+{
+  "name": "@clickhouse/clickstack-node",
+  "version": "0.0.0",
+  "description": "OpenTelemetry Node.js for ClickHouse Observability",
+  "keywords": [
+    "opentelemetry",
+    "otel",
+    "clickstack",
+    "clickhouse",
+    "tracing",
+    "observability",
+    "distro"
+  ],
+  "homepage": "https://github.com/ClickHouse/clickstack-node#readme",
+  "bugs": {
+    "url": "https://github.com/ClickHouse/clickstack-node/issues"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ClickHouse/clickstack-node.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./register": {
+      "import": {
+        "types": "./dist/register.d.mts",
+        "default": "./dist/register.mjs"
+      },
+      "require": {
+        "types": "./dist/register.d.cts",
+        "default": "./dist/register.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.cts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "./dist/register.mjs",
+    "./dist/register.cjs"
+  ],
+  "engines": {
+    "node": ">=22.15.0"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint --max-warnings 0 .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --project unit --coverage",
+    "test:e2e": "vitest run --project e2e",
+    "spell": "cspell lint --no-progress --dot --gitignore \"**\"",
+    "pack:check": "node -e \"require('node:fs').mkdirSync('pack', { recursive: true })\" && npm pack --pack-destination pack --silent && publint --strict pack/*.tgz && attw --profile node16 pack/*.tgz",
+    "check": "npm run spell && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run pack:check && npm run test:e2e"
+  },
+  "dependencies": {
+    "@opentelemetry/api-logs": "^0.223.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.81.0",
+    "@opentelemetry/core": "^2.12.0",
+    "@opentelemetry/instrumentation": "^0.223.0",
+    "@opentelemetry/instrumentation-console": "^0.5.0",
+    "@opentelemetry/resources": "^2.12.0",
+    "@opentelemetry/sdk-node": "^0.223.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "import-in-the-middle": "^3.5.2"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": ">=1.9.1 <1.10.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
+    "@eslint/js": "10.0.1",
+    "@opentelemetry/api": "1.9.1",
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.0.3",
+    "cspell": "10.3.6",
+    "eslint": "10.12.0",
+    "eslint-plugin-tsdoc": "0.5.4",
+    "globals": "17.13.0",
+    "prettier": "3.9.9",
+    "publint": "0.3.25",
+    "tsdown": "0.23.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.11.0 || >=26.0.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": ">=11.11.0 <12",
+      "onFail": "error"
+    }
+  },
+  "packageManager": "npm@11.19.0"
+}
