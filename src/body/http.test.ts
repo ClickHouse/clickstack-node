@@ -125,7 +125,7 @@ describe("node:http server bodies", () => {
 
         void (async () => {
           let s = "";
-      
+
           for await (const c of req) s += c as string;
 
           end(s);
@@ -184,7 +184,7 @@ describe("node:http server bodies", () => {
 
     await post(port, "");
     await done;
-    
+
     expect(span.attributes["http.response.body.content"]).toBe(
       '{"token":"[REDACTED]"}',
     );
@@ -233,7 +233,7 @@ describe("node:http client bodies", () => {
 
     const failed = new Promise((resolve) => req.on("error", resolve));
     req.end("sent anyway");
-    
+
     await failed;
 
     expect(span.attributes["http.request.body.content"]).toBe("sent anyway");

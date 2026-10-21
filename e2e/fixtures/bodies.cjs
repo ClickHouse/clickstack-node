@@ -82,6 +82,6 @@ server.listen(0, "127.0.0.1", async () => {
     `RESULT ${JSON.stringify({ uploadOk: uploaded === sha(upload), sse })}\n`,
   );
   process.stdout.write("READY\n");
-  
+
   server.close();
 });

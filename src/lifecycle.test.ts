@@ -435,7 +435,7 @@ describe("installLifecycle", () => {
 
         handlers.get("beforeExit")?.();
         await vi.advanceTimersByTimeAsync(5000);
-        
+
         expect(exit).toHaveBeenCalledWith();
       } finally {
         vi.useRealTimers();

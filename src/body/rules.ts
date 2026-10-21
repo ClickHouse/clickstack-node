@@ -156,16 +156,12 @@ function endOfValue(text: string, from: number): number {
       if (depth === 0) return end;
 
       i = end - 1;
-
     } else if (c === "{" || c === "[") {
       depth++;
-
     } else if (c === "}" || c === "]") {
       if (depth === 0) return i;
       if (--depth === 0) return i + 1;
-
     } else if (depth === 0 && (c === "," || /\s/.test(c))) {
-
       return i;
     }
   }
@@ -368,7 +364,7 @@ export class BodyCapture {
     attributes[
       request ? ATTR_HTTP_REQUEST_BODY_CONTENT : ATTR_HTTP_RESPONSE_BODY_CONTENT
     ] = redactJson(text);
-    
+
     return attributes;
   }
 }

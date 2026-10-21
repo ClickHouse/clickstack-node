@@ -135,7 +135,7 @@ describe("register entry", () => {
       args: ["--init"],
       env: exportTo(service),
     });
-    
+
     expect(result.stderr).toContain("an OpenTelemetry SDK is already started");
     expect(methods(await waitFor(service, delivered))).toEqual(["GET", "GET"]);
   });

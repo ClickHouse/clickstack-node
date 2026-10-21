@@ -31,7 +31,7 @@ server.listen(0, "127.0.0.1", () => {
     response.resume();
     response.on("end", () => {
       process.stdout.write(`READY ${port}\n`);
-      
+
       if (argv.includes("--crash")) {
         setTimeout(() => {
           throw new Error("fixture crash");

@@ -126,7 +126,7 @@ describe("BodyCapture content", () => {
   it("records only the size of a content-encoded body", () => {
     const capture = new BodyCapture();
     capture.add('{"a":1}');
-    
+
     expect(
       capture.attributes(
         "request",

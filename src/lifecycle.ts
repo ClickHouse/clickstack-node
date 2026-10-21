@@ -119,7 +119,7 @@ export async function flush(timeoutMillis?: number): Promise<void> {
   const pending = state.shutdownPromise;
   if (pending !== undefined) {
     await bounded(() => pending, ms, false);
-  
+
     return;
   }
 
@@ -144,7 +144,6 @@ export async function flush(timeoutMillis?: number): Promise<void> {
       } catch (error) {
         report("warn", "flush failed", error);
       }
-
     }),
   );
 
@@ -219,7 +218,7 @@ export function withFlush<E, C, R>(
 
     try {
       recordInvocationDeadline(context);
-  
+
       if (firstCall) {
         firstCall = false;
 
@@ -394,12 +393,11 @@ export function installLifecycle(): void {
       ]).then(() => {
         process.exit(1);
       });
-
     } catch {
       // A throw from an uncaughtException listener makes Node exit with code 7.
       process.exit(1);
     }
   };
-  
+
   process.prependListener("uncaughtException", onUncaughtException);
 }

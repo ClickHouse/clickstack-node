@@ -98,7 +98,7 @@ describe("lifecycle", () => {
     expect(
       (await run("app.cjs", { nodeArgs: REGISTER, env: env(service) })).code,
     ).toBe(0);
-    
+
     await waitFor(service, (t) => t.spans.length === 2);
   });
 });

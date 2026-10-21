@@ -139,7 +139,7 @@ export function createUndiciBodyCapture(): UndiciBodyCapture | undefined {
         responseHasNoBody(request.method, response.statusCode)
       )
         return;
-        
+
       const headers = headerMap(response.headers);
       ex.response = side(headers, headers.get("content-length"));
     },

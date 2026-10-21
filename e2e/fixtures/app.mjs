@@ -9,7 +9,7 @@ const server = createServer((request, response) => {
 
 server.listen(0, "127.0.0.1", () => {
   const { port } = server.address();
-  
+
   get(`http://127.0.0.1:${port}/hello`, (response) => {
     response.resume();
     response.on("end", () => {

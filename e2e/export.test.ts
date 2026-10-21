@@ -106,7 +106,7 @@ describe("export to a collector", () => {
         OTEL_EXPORTER_OTLP_HEADERS: "authorization=wrong-key",
       },
     });
-    
+
     expect(result.stderr).toMatch(/Unauthorized|401/);
     expect(await telemetry(service)).toEqual({
       spans: [],

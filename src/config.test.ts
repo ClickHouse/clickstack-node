@@ -84,7 +84,7 @@ describe("applyOptions", () => {
   it("accepts the header a parent process wrote for the same key, and warns about a missing endpoint", () => {
     vi.stubEnv("OTEL_EXPORTER_OTLP_HEADERS", "authorization=k");
     applyOptions({ apiKey: "k" });
-    
+
     expect(warnings()).toEqual([
       "clickstack-node: apiKey is set but OTEL_EXPORTER_OTLP_ENDPOINT is not",
     ]);

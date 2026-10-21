@@ -113,7 +113,7 @@ describe("header capture", () => {
       OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_RESPONSE: "x-request-id",
     });
     const json = server(telemetry, "/json")?.attributes;
-    
+
     expect(json?.["http.request.header.content-type"]).toEqual([
       "application/json",
     ]);

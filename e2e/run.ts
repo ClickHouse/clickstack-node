@@ -75,7 +75,7 @@ export function run(
   child.stderr.on("data", (chunk: Buffer) => (stderr += chunk.toString()));
 
   const timer = setTimeout(() => child.kill("SIGKILL"), 30_000);
-  
+
   return new Promise((resolve) => {
     child.on("close", (code, signal) => {
       clearTimeout(timer);

@@ -120,7 +120,7 @@ describe.runIf(supported)("fetch bodies", () => {
 describe.runIf(!supported)("fetch bodies on Node before 24.4", () => {
   it("captures nothing and warns", () => {
     const warn = vi.spyOn(diag, "warn").mockImplementation(() => undefined);
-    
+
     expect(createUndiciBodyCapture()).toBeUndefined();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("fetch bodies"));
   });

@@ -84,7 +84,6 @@ export default async function globalSetup(
         await new Promise((resolve) => setTimeout(resolve, 250));
       }
     }
-
   } catch (error) {
     await stop();
 
@@ -96,6 +95,6 @@ export default async function globalSetup(
   project.provide("collectorEndpoint", endpoint);
   project.provide("collectorOutput", output);
   project.provide("apiKey", API_KEY);
-  
+
   return stop;
 }

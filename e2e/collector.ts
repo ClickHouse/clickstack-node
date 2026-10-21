@@ -150,7 +150,7 @@ export async function waitFor(
 
     if (Date.now() > end)
       throw new Error(`collector: condition not met for ${service}`);
-    
+
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 }

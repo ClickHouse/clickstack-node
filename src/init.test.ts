@@ -131,7 +131,7 @@ describe("init", () => {
     const resource = calls.config[0]?.["resource"] as {
       attributes: Record<string, unknown>;
     };
-  
+
     expect(resource.attributes["deployment.environment.name"]).toBe("staging");
   });
 
@@ -210,7 +210,7 @@ describe("init", () => {
         },
       },
     });
-  
+
     expect(
       calls.map[0]?.["@opentelemetry/instrumentation-runtime-node"],
     ).toEqual({
@@ -299,7 +299,7 @@ describe("init", () => {
     "turns the router instrumentation off unless code or the enabled list asks for it: %j %j",
     (env, instrumentations, router) => {
       for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
-      
+
       init({ instrumentations });
 
       expect(calls.map[0]?.["@opentelemetry/instrumentation-router"]).toEqual(

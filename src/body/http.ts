@@ -199,7 +199,7 @@ export function createHttpBodyHooks(): HttpBodyHooks {
 
       ex.response = observe(response);
       ex.status = () => response.statusCode;
-      
+
       // Upstream ends the span on a server response error without applyCustomAttributesOnSpan.
       if (!isIncoming(response)) {
         response.on(errorMonitor, () => {

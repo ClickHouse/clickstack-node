@@ -66,7 +66,7 @@ export function composeInstrumentationConfig(
       ...(getStringListFromEnv(HEADERS_ENV + list) ?? []),
       ...(code ?? []),
     ];
-  
+
     const kept = new Set<string>();
     for (const name of all.map((n) => n.toLowerCase())) {
       if (!sanitize.has(name)) kept.add(name);
@@ -76,7 +76,7 @@ export function composeInstrumentationConfig(
           `header "${name}" is on the sanitize list and is not captured`,
         );
     }
-  
+
     return [...kept];
   };
 
