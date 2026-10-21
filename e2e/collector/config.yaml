@@ -1,0 +1,37 @@
+# The collector of the end-to-end tests. global-setup.ts runs it in Docker with the ingestion key in
+# the environment, and the tests read the file it writes.
+
+extensions:
+  bearertokenauth:
+    # The package sends the bare key in the authorization header, as ClickStack expects.
+    scheme: ""
+    token: ${env:E2E_API_KEY}
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        auth:
+          authenticator: bearertokenauth
+
+exporters:
+  file:
+    path: /output/telemetry.jsonl
+    flush_interval: 10ms
+
+service:
+  extensions: [bearertokenauth]
+  telemetry:
+    metrics:
+      level: none
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [file]
+    metrics:
+      receivers: [otlp]
+      exporters: [file]
+    logs:
+      receivers: [otlp]
+      exporters: [file]
