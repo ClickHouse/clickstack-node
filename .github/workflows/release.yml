@@ -1,0 +1,50 @@
+# Publishes the version in package.json. Run it from the Actions tab on main once the version bump
+# is merged; the npm-publish environment asks a reviewer to approve.
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish to npm
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: write # the tag and the GitHub release
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - name: Publish
+        id: publish
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          case "$version" in
+            *-*) tag=next prerelease=true ;;
+            *) tag=latest prerelease=false ;;
+          esac
+          npm publish --provenance --access public --tag "$tag"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.publish.outputs.version }}
+          PRERELEASE: ${{ steps.publish.outputs.prerelease }}
+        run: |
+          gh release create "v$VERSION" --target "$GITHUB_SHA" --title "v$VERSION" \
+            --notes "Changes: https://github.com/$GH_REPO/blob/v$VERSION/CHANGELOG.md" \
+            --prerelease="$PRERELEASE"

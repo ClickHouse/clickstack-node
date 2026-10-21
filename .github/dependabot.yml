@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      opentelemetry:
+        patterns: ["@opentelemetry/*"]
+      # These packages require each other at the same version, so they move in one PR.
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # Type definitions follow the oldest supported Node major (engines.node).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # typescript-eslint 8 supports TypeScript below 6.1.
+      - dependency-name: typescript
+        versions: [">=6.1.0"]

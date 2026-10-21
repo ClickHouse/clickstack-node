@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in @clickhouse/clickstack-node does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: A minimal repository or script, the init options and OTEL_* variables (without keys), and the steps.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: start
+    attributes:
+      label: How the package starts
+      options:
+        - --import @clickhouse/clickstack-node/register
+        - --require @clickhouse/clickstack-node/register
+        - init() in code
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version and platform
+      placeholder: v24.11.0 on Linux (Docker)
+    validations:
+      required: true
+  - type: input
+    id: clickstack
+    attributes:
+      label: ClickStack version
+      description: Self-hosted image tag, or "ClickHouse Cloud".
+  - type: textarea
+    id: logs
+    attributes:
+      label: Diagnostics
+      description: Output with OTEL_LOG_LEVEL=debug, with keys and personal data removed.
+      render: text

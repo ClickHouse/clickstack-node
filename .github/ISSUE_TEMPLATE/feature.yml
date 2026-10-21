@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a change to @clickhouse/clickstack-node.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you are trying to do and what blocks you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The option or behavior you suggest, with an example.
+    validations:
+      required: true
+  - type: textarea
+    id: upstream
+    attributes:
+      label: Upstream alternatives
+      description: Whether the upstream OpenTelemetry Node.js SDK can already do this, and how you checked.

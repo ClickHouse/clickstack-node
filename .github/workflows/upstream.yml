@@ -1,0 +1,73 @@
+# Runs the suite once a week against the newest upstream OpenTelemetry releases, without our version
+# caps, to find breaks before Dependabot proposes the update.
+name: Upstream
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  suite:
+    name: Suite (@opentelemetry/*@latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts
+      - name: Install the latest @opentelemetry packages
+        run: |
+          jq -r '[.dependencies, .peerDependencies, .devDependencies] | add | keys[]
+            | select(startswith("@opentelemetry/")) + "@latest"' package.json > "$RUNNER_TEMP/specs.txt"
+          # --force accepts peer ranges that our caps do not satisfy yet.
+          xargs npm install --no-save --force --ignore-scripts < "$RUNNER_TEMP/specs.txt"
+          npm ls --depth=0 || true
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:e2e
+
+  report:
+    name: Upstream-break issue
+    needs: [suite]
+    if: always() && github.repository == 'ClickHouse/clickstack-node'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open, update or close the upstream-break issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RESULT: ${{ needs.suite.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create upstream-break --color B60205 --description 'Scheduled upstream run failed' --force
+          issue=$(gh issue list --label upstream-break --state open --limit 1 --json number --jq '.[0].number // empty')
+          # A cancelled or skipped run proves nothing either way, so the issue stays as it is.
+          case "$RESULT" in
+            success)
+              if [ -n "$issue" ]; then
+                gh issue close "$issue" --comment "The weekly upstream run passed again: $RUN_URL"
+              fi
+              ;;
+            failure)
+              if [ -n "$issue" ]; then
+                gh issue comment "$issue" --body "The weekly upstream run failed again: $RUN_URL"
+              else
+                gh issue create --label upstream-break \
+                  --title 'Upstream break: the weekly run against the latest OpenTelemetry failed' \
+                  --body "The weekly run against @opentelemetry/*@latest failed: $RUN_URL"
+              fi
+              ;;
+          esac

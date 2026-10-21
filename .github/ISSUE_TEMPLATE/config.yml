@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ClickStack documentation
+    url: https://clickhouse.com/docs/use-cases/observability/clickstack
+    about: Setup guides and answers to common questions.
+  - name: Ask a question in the ClickHouse community Slack
+    url: https://clickhouse.com/slack
+    about: For questions that are not bug reports or feature requests.
