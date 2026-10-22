@@ -1,11 +1,12 @@
 import {
   diag,
+  logs,
   metrics,
   trace,
+  type LoggerProvider,
   type MeterProvider,
   type TracerProvider,
 } from "@opentelemetry/api";
-import { logs, type LoggerProvider } from "@opentelemetry/api-logs";
 import type { NodeSDK } from "@opentelemetry/sdk-node";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flush, installLifecycle, shutdown, withFlush } from "./lifecycle.ts";

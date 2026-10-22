@@ -43,6 +43,19 @@ describe("register entry", () => {
     },
   );
 
+  it("works from an ES module preload file that calls init()", async () => {
+    const service = uniqueService();
+    const preload = new URL("fixtures/instrumentation.mjs", import.meta.url);
+    const result = await run("app.mjs", {
+      nodeArgs: ["--import", preload.href],
+      env: exportTo(service),
+    });
+
+    expect(result.code).toBe(0);
+    // The client span comes from a named ESM import of node:http.
+    expect(methods(await waitFor(service, delivered))).toEqual(["GET", "GET"]);
+  });
+
   it("falls back to the asynchronous loader hook where require(esm) is disabled, as on Lambda", async () => {
     const service = uniqueService();
     const result = await run("app.mjs", {

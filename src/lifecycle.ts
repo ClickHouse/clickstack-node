@@ -1,9 +1,7 @@
 import { constants } from "node:os";
 import { inspect } from "node:util";
 import { isMainThread } from "node:worker_threads";
-import { metrics, trace } from "@opentelemetry/api";
-// The only api-logs import in the package: OTel JS 3.x moves `logs` into @opentelemetry/api.
-import { logs } from "@opentelemetry/api-logs";
+import { logs, metrics, trace } from "@opentelemetry/api";
 import { getStringFromEnv } from "@opentelemetry/core";
 import { report } from "./env.ts";
 import { getState } from "./state.ts";

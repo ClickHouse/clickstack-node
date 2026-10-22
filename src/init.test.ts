@@ -21,42 +21,43 @@ const calls = vi.hoisted(() => ({
   loggerDuringBundle: [] as boolean[],
 }));
 
-vi.mock("@opentelemetry/sdk-node", () => ({
-  NodeSDK: class {
-    constructor(config: Record<string, unknown>) {
-      if (calls.sdkFails) throw new Error("bad config");
-      calls.config.push(config);
-      calls.logLevels.push(process.env["OTEL_LOG_LEVEL"]);
-    }
-
-    start(): void {
-      calls.started += 1;
-    }
-  },
-}));
-vi.mock("@opentelemetry/auto-instrumentations-node", () => {
+vi.mock("./sdk.ts", async () => {
+  const resources = await import("@opentelemetry/resources");
   const registry = () =>
     (globalThis as Record<symbol, { diag?: unknown } | undefined>)[
       Symbol.for("opentelemetry.js.api.1")
     ];
 
   return {
-    getNodeAutoInstrumentations: (map: Record<string, unknown>) => {
-      calls.map.push(map);
-      calls.loggerDuringBundle.push(registry()?.diag !== undefined);
-      return calls.bundle;
-    },
-    getResourceDetectors: () => {
-      calls.detectorsEnv.push(process.env["OTEL_NODE_RESOURCE_DETECTORS"]);
-      return [];
-    },
+    loadSdk: () => ({
+      NodeSDK: class {
+        constructor(config: Record<string, unknown>) {
+          if (calls.sdkFails) throw new Error("bad config");
+          calls.config.push(config);
+          calls.logLevels.push(process.env["OTEL_LOG_LEVEL"]);
+        }
+
+        start(): void {
+          calls.started += 1;
+        }
+      },
+      getNodeAutoInstrumentations: (map: Record<string, unknown>) => {
+        calls.map.push(map);
+        calls.loggerDuringBundle.push(registry()?.diag !== undefined);
+        return calls.bundle;
+      },
+      getResourceDetectors: () => {
+        calls.detectorsEnv.push(process.env["OTEL_NODE_RESOURCE_DETECTORS"]);
+        return [];
+      },
+      ConsoleInstrumentation: function ConsoleInstrumentation() {
+        calls.consoles += 1;
+      },
+      defaultResource: resources.defaultResource,
+      resourceFromAttributes: resources.resourceFromAttributes,
+    }),
   };
 });
-vi.mock("@opentelemetry/instrumentation-console", () => ({
-  ConsoleInstrumentation: vi.fn(function ConsoleInstrumentation() {
-    calls.consoles += 1;
-  }),
-}));
 vi.mock("./hook.ts", () => ({
   installEsmHook: () => {
     if (calls.hookFails) throw new Error("no hook");

@@ -3,20 +3,11 @@
 import * as workerThreads from "node:worker_threads";
 import { trace, type TracerProvider } from "@opentelemetry/api";
 import {
-  getNodeAutoInstrumentations,
-  getResourceDetectors,
-} from "@opentelemetry/auto-instrumentations-node";
-import {
   getBooleanFromEnv,
   getStringFromEnv,
   getStringListFromEnv,
 } from "@opentelemetry/core";
-import { ConsoleInstrumentation } from "@opentelemetry/instrumentation-console";
-import {
-  defaultResource,
-  resourceFromAttributes,
-} from "@opentelemetry/resources";
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import type { NodeSDK } from "@opentelemetry/sdk-node";
 import {
   ATTR_DEPLOYMENT_ENVIRONMENT_NAME,
   ATTR_TELEMETRY_DISTRO_NAME,
@@ -27,6 +18,7 @@ import { applyOptions, type ClickStackNodeOptions } from "./config.ts";
 import { apiRegistry, report, warnOnce, withStartupLogger } from "./env.ts";
 import { installEsmHook } from "./hook.ts";
 import { flush, installLifecycle } from "./lifecycle.ts";
+import { loadSdk } from "./sdk.ts";
 import { getState } from "./state.ts";
 import { VERSION } from "./version.ts";
 
@@ -95,6 +87,14 @@ function start(options: ClickStackNodeOptions): void {
       err,
     );
   }
+  const {
+    NodeSDK,
+    getNodeAutoInstrumentations,
+    getResourceDetectors,
+    ConsoleInstrumentation,
+    defaultResource,
+    resourceFromAttributes,
+  } = loadSdk();
 
   const bodies = getBooleanFromEnv("CLICKSTACK_CAPTURE_HTTP_BODY");
   const { map, unsubscribe } = composeInstrumentationConfig(

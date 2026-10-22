@@ -159,7 +159,7 @@ process.once("SIGTERM", () => {
 
 What the package adds to this:
 
-- ES modules: upstream registers no ES module loader hook on the 2.x line. Add
+- ES modules: upstream registers no ES module loader hook. Add
   `--experimental-loader=@opentelemetry/instrumentation/hook.mjs`, which prints an
   `ExperimentalWarning` on every start.
 - Crashes: the record of an uncaught exception is exported before Node.js exits, and the process
@@ -249,9 +249,9 @@ What the package adds to this:
 ## Compatibility
 
 - Node.js 22.15 or later. CI runs the latest 22, 24 and 26. Windows is not tested.
-- OpenTelemetry JS 2.x: `@opentelemetry/sdk-node` `^0.223.0`, `@opentelemetry/core` `^2.12.0` and
-  `@opentelemetry/auto-instrumentations-node` `^0.81.0`, with `@opentelemetry/api`
-  `>=1.9.1 <1.10.0`.
+- OpenTelemetry JS 3.x: `@opentelemetry/sdk-node` `^0.300.0`, `@opentelemetry/core` `^3.0.0` and
+  `@opentelemetry/auto-instrumentations-node` `^0.82.0`, with `@opentelemetry/api`
+  `>=1.10.0 <1.11.0`. Code written for `@opentelemetry/api` 1.9 works unchanged with 1.10.
 - ES modules: the flag uses synchronous loader hooks on Node.js 22.22.3 or later, 24.11.1 or later
   and 26, and `module.register()` on earlier versions and where `require()` of ES modules is off,
   such as AWS Lambda. With `module.register()`, a named import from `node:http` after the import of

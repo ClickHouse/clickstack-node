@@ -134,7 +134,7 @@ The package exports `init`, `flush`, `shutdown`, `withFlush` and the `ClickStack
 - **Unhandled rejections.** Only apps that set `HDX_NODE_EXPERIMENTAL_EXCEPTION_CAPTURE=1` or called `initSDK({ experimentalExceptionCapture: true })` had rejections recorded while the process kept running. Every other app already crashed on an unhandled rejection, as Node.js does by default. The new package follows Node.js: the process crashes, with a FATAL record. To restore record-and-continue, add your own listener:
 
   ```js
-  const { logs, SeverityNumber } = require("@opentelemetry/api-logs");
+  const { logs, SeverityNumber } = require("@opentelemetry/api");
 
   process.on("unhandledRejection", (reason) => {
     logs.getLogger("app").emit({
@@ -146,7 +146,7 @@ The package exports `init`, `flush`, `shutdown`, `withFlush` and the `ClickStack
   });
   ```
 
-  This listener turns off Node's crash for every rejection, as the old package did. `@opentelemetry/api-logs` must be a dependency of the app (`^0.223.0`).
+  This listener turns off Node's crash for every rejection, as the old package did. `logs` is part of `@opentelemetry/api` from 1.10.
 
 ### HTTP spans and metrics
 
@@ -239,7 +239,7 @@ The old Sentry integration is gone. `@sentry/node` runs next to this package wit
 | `HyperDXWinston` transport                        | `@opentelemetry/winston-transport`, installed next to this package; the bundled winston instrumentation adds it automatically |
 | pino target `@hyperdx/node-logger/build/src/pino` | Delete it; the bundled pino instrumentation sends pino records                                                                |
 | `HyperDXNestLoggerModule`                         | `nest-winston` with `@opentelemetry/winston-transport`                                                                        |
-| `HyperDXLogger.postMessage()`                     | The Logs API: `logs.getLogger('app').emit({ body, severityNumber })` from `@opentelemetry/api-logs`                           |
+| `HyperDXLogger.postMessage()`                     | The Logs API: `logs.getLogger('app').emit({ body, severityNumber })` from `@opentelemetry/api`                                |
 
 Its variables are covered above: `HYPERDX_API_KEY` becomes `OTEL_EXPORTER_OTLP_HEADERS`, and `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_BLRP_*` and `OTEL_LOG_LEVEL` keep their meaning. `HYPERDX_API_URL` was never used.
 

@@ -47,7 +47,7 @@ const restoreFormat: ResolveHookSync = (specifier, context, nextResolve) => {
  * @throws If `@opentelemetry/instrumentation/hook.mjs` cannot be resolved or Node rejects the hook.
  */
 export function installEsmHook(): EsmHookMode {
-  // `hook.mjs` is exported on both the 2.x and 3.x lines; `package.json` is not exported on 3.x.
+  // `package.json` is not exported, so the hook file itself is resolved.
   const hookFile = nodeModule
     .createRequire(import.meta.url)
     .resolve("@opentelemetry/instrumentation/hook.mjs");
