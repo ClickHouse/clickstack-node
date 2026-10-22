@@ -58,7 +58,7 @@ export interface ClickStackNodeOptions {
    */
   instrumentations?: InstrumentationConfigMap | undefined;
   /**
-   * Instrumentations to add to the bundle, such as `@fastify/otel`.
+   * Instrumentation instances to add to the bundle's, for libraries the bundle does not cover.
    *
    * @defaultValue `[]`
    */

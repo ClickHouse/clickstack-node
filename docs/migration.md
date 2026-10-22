@@ -234,12 +234,12 @@ The old Sentry integration is gone. `@sentry/node` runs next to this package wit
 
 ## @hyperdx/node-logger
 
-| `@hyperdx/node-logger`                            | Replacement                                                                                                                   |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `HyperDXWinston` transport                        | `@opentelemetry/winston-transport`, installed next to this package; the bundled winston instrumentation adds it automatically |
-| pino target `@hyperdx/node-logger/build/src/pino` | Delete it; the bundled pino instrumentation sends pino records                                                                |
-| `HyperDXNestLoggerModule`                         | `nest-winston` with `@opentelemetry/winston-transport`                                                                        |
-| `HyperDXLogger.postMessage()`                     | The Logs API: `logs.getLogger('app').emit({ body, severityNumber })` from `@opentelemetry/api-logs`                           |
+| `@hyperdx/node-logger`                            | Replacement                                                                                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `HyperDXWinston` transport                        | `@opentelemetry/winston-transport`, installed next to this package; the bundled winston instrumentation adds it automatically              |
+| pino target `@hyperdx/node-logger/build/src/pino` | Delete it; the bundled pino instrumentation sends pino records                                                                             |
+| `HyperDXNestLoggerModule`                         | A NestJS logger built on winston or pino; the bundled instrumentations send its records (winston needs `@opentelemetry/winston-transport`) |
+| `HyperDXLogger.postMessage()`                     | The Logs API: `logs.getLogger('app').emit({ body, severityNumber })` from `@opentelemetry/api-logs`                                        |
 
 Its variables are covered above: `HYPERDX_API_KEY` becomes `OTEL_EXPORTER_OTLP_HEADERS`, and `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_BLRP_*` and `OTEL_LOG_LEVEL` keep their meaning. `HYPERDX_API_URL` was never used.
 

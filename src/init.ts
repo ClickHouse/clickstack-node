@@ -117,9 +117,23 @@ function start(options: ClickStackNodeOptions): void {
   if (enabled === undefined) map[router] = { enabled: false, ...map[router] };
 
   // Console capture follows the bundle's env lists, although `console` is not a bundle member.
-  const consoleCapture =
+  const consoleListed =
     disabled?.includes("console") !== true &&
     (enabled?.includes("console") ?? true);
+  // The console exporters print with console.dir, and instrumentation-console records that output,
+  // also during exports, so every printed span or record would come back as a log record.
+  const consoleExporter = [
+    "OTEL_TRACES_EXPORTER",
+    "OTEL_METRICS_EXPORTER",
+    "OTEL_LOGS_EXPORTER",
+  ].find((name) => getStringListFromEnv(name)?.includes("console"));
+  if (consoleListed && consoleExporter !== undefined) {
+    warnOnce(
+      "console-exporter",
+      `console capture is off because ${consoleExporter} includes console`,
+    );
+  }
+  const consoleCapture = consoleListed && consoleExporter === undefined;
 
   const instrumentations = [
     // Unknown names in the OTEL_NODE_*_INSTRUMENTATIONS lists are reported here.

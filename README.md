@@ -51,15 +51,15 @@ init({
 Static imports run before any code in an ES module, so an ES module app calls `init` in a file of
 its own and preloads it: `node --import ./instrumentation.mjs server.mjs`.
 
-| Option                       | Environment variable (wins)                                          | Default                                    | Meaning                                                                                                                                                             |
-| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `endpoint`                   | `OTEL_EXPORTER_OTLP_ENDPOINT`                                        | `http://localhost:4318`                    | OTLP/HTTP base URL of the collector. `/v1/traces`, `/v1/metrics` and `/v1/logs` are appended.                                                                       |
-| `serviceName`                | `OTEL_SERVICE_NAME`, or `service.name` in `OTEL_RESOURCE_ATTRIBUTES` | `unknown_service:` and the executable name | `service.name` of all telemetry.                                                                                                                                    |
-| `environment`                | `OTEL_RESOURCE_ATTRIBUTES` (`deployment.environment.name=<env>`)     | None                                       | `deployment.environment.name`, such as `production` or `staging`.                                                                                                   |
-| `apiKey`                     | `OTEL_EXPORTER_OTLP_HEADERS` (`authorization=<key>`)                 | None                                       | Ingestion key, sent as the `authorization` header. Send the bare key; `Bearer <key>` works only on ClickStack 2.38.0 or later.                                      |
-| `httpBodyCapture`            | `CLICKSTACK_CAPTURE_HTTP_BODY`                                       | `false`                                    | Records request and response bodies ([Privacy](#privacy)).                                                                                                          |
-| `instrumentations`           | None                                                                 | Upstream defaults                          | The `getNodeAutoInstrumentations()` config map. An `enabled` value here beats `OTEL_NODE_ENABLED_INSTRUMENTATIONS` and `OTEL_NODE_DISABLED_INSTRUMENTATIONS`.       |
-| `additionalInstrumentations` | None                                                                 | `[]`                                       | Instrumentations outside the bundle, such as `new FastifyOtelInstrumentation({ registerOnInitialization: true })` from `@fastify/otel` (the bundle has no Fastify). |
+| Option                       | Environment variable (wins)                                          | Default                                    | Meaning                                                                                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `endpoint`                   | `OTEL_EXPORTER_OTLP_ENDPOINT`                                        | `http://localhost:4318`                    | OTLP/HTTP base URL of the collector. `/v1/traces`, `/v1/metrics` and `/v1/logs` are appended.                                                                 |
+| `serviceName`                | `OTEL_SERVICE_NAME`, or `service.name` in `OTEL_RESOURCE_ATTRIBUTES` | `unknown_service:` and the executable name | `service.name` of all telemetry.                                                                                                                              |
+| `environment`                | `OTEL_RESOURCE_ATTRIBUTES` (`deployment.environment.name=<env>`)     | None                                       | `deployment.environment.name`, such as `production` or `staging`.                                                                                             |
+| `apiKey`                     | `OTEL_EXPORTER_OTLP_HEADERS` (`authorization=<key>`)                 | None                                       | Ingestion key, sent as the `authorization` header. Send the bare key; `Bearer <key>` works only on ClickStack 2.38.0 or later.                                |
+| `httpBodyCapture`            | `CLICKSTACK_CAPTURE_HTTP_BODY`                                       | `false`                                    | Records request and response bodies ([Privacy](#privacy)).                                                                                                    |
+| `instrumentations`           | None                                                                 | Upstream defaults                          | The `getNodeAutoInstrumentations()` config map. An `enabled` value here beats `OTEL_NODE_ENABLED_INSTRUMENTATIONS` and `OTEL_NODE_DISABLED_INSTRUMENTATIONS`. |
+| `additionalInstrumentations` | None                                                                 | `[]`                                       | Instrumentation instances to add to the bundle's, for libraries the bundle does not cover.                                                                    |
 
 `init` writes `serviceName`, `endpoint`, `apiKey` and `httpBodyCapture` to their variables only
 when those are unset or blank, so an operator's value wins and child processes inherit it;
@@ -69,7 +69,9 @@ start logs a warning and does nothing. The rest is fixed:
 
 - Instrumentations: the upstream auto-instrumentations bundle with its defaults, plus `console`
   capture (`@opentelemetry/instrumentation-console`) and crash capture. To turn `console` capture
-  off, add `console` to `OTEL_NODE_DISABLED_INSTRUMENTATIONS`.
+  off, add `console` to `OTEL_NODE_DISABLED_INSTRUMENTATIONS`. It is also off while
+  `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER` or `OTEL_LOGS_EXPORTER` includes `console`, because
+  those exporters print with `console`.
 - The router instrumentation is off. Express 5 is built on the `router` package, so with it every
   Express middleware gets a second span and every route error three exception events. To turn it
   on, list `router` in `OTEL_NODE_ENABLED_INSTRUMENTATIONS`, or set `enabled: true` for

@@ -97,6 +97,9 @@ beforeEach(() => {
     "OTEL_NODE_RESOURCE_DETECTORS",
     "OTEL_NODE_DISABLED_INSTRUMENTATIONS",
     "OTEL_NODE_ENABLED_INSTRUMENTATIONS",
+    "OTEL_TRACES_EXPORTER",
+    "OTEL_METRICS_EXPORTER",
+    "OTEL_LOGS_EXPORTER",
   ]) {
     vi.stubEnv(name, undefined);
   }
@@ -312,14 +315,29 @@ describe("init", () => {
     [{ OTEL_NODE_DISABLED_INSTRUMENTATIONS: "console" }, 0],
     [{ OTEL_NODE_ENABLED_INSTRUMENTATIONS: "http" }, 0],
     [{ OTEL_NODE_ENABLED_INSTRUMENTATIONS: "http, console" }, 1],
+    [{ OTEL_LOGS_EXPORTER: "console" }, 0],
+    [{ OTEL_TRACES_EXPORTER: "otlp,console" }, 0],
+    [{ OTEL_LOGS_EXPORTER: "otlp" }, 1],
   ])(
-    "follows the bundle env lists for console capture: %j",
+    "follows the bundle env lists and the console exporters for console capture: %j",
     (env, consoles) => {
       for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
+      vi.spyOn(diag, "warn").mockImplementation(() => undefined);
 
       init();
 
       expect(calls.consoles).toBe(consoles);
     },
   );
+
+  it("says why console capture is off when a console exporter is set", () => {
+    vi.stubEnv("OTEL_LOGS_EXPORTER", "console");
+    const warn = vi.spyOn(diag, "warn").mockImplementation(() => undefined);
+    
+    init();
+
+    expect(warn).toHaveBeenCalledWith(
+      "clickstack-node: console capture is off because OTEL_LOGS_EXPORTER includes console",
+    );
+  });
 });
