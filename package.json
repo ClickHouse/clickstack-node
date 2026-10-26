@@ -88,17 +88,17 @@
     "@eslint/js": "10.0.1",
     "@opentelemetry/api": "1.9.1",
     "@types/node": "22.20.5",
-    "@vitest/coverage-v8": "5.0.3",
-    "cspell": "10.3.6",
-    "eslint": "10.12.0",
+    "@vitest/coverage-v8": "5.0.5",
+    "cspell": "10.4.0",
+    "eslint": "10.13.0",
     "eslint-plugin-tsdoc": "0.5.4",
     "globals": "17.13.0",
-    "prettier": "3.9.9",
+    "prettier": "3.9.10",
     "publint": "0.3.25",
-    "tsdown": "0.23.0",
+    "tsdown": "0.23.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.71.1",
-    "vitest": "5.0.3"
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.5"
   },
   "devEngines": {
     "runtime": {
