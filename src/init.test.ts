@@ -333,7 +333,7 @@ describe("init", () => {
   it("says why console capture is off when a console exporter is set", () => {
     vi.stubEnv("OTEL_LOGS_EXPORTER", "console");
     const warn = vi.spyOn(diag, "warn").mockImplementation(() => undefined);
-    
+
     init();
 
     expect(warn).toHaveBeenCalledWith(
