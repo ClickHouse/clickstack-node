@@ -86,7 +86,7 @@
     "@arethetypeswrong/cli": "0.18.5",
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "@eslint/js": "10.0.1",
-    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api": "1.10.0",
     "@types/node": "22.20.5",
     "@vitest/coverage-v8": "5.0.5",
     "cspell": "10.4.0",
