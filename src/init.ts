@@ -25,6 +25,7 @@ import {
 import { composeInstrumentationConfig } from "./compose.ts";
 import { applyOptions, type ClickStackNodeOptions } from "./config.ts";
 import { apiRegistry, report, warnOnce, withStartupLogger } from "./env.ts";
+import { exceptionAttributes } from "./exception.ts";
 import { installEsmHook } from "./hook.ts";
 import { flush, installLifecycle } from "./lifecycle.ts";
 import { getState } from "./state.ts";
@@ -105,7 +106,15 @@ function start(options: ClickStackNodeOptions): void {
   if (unsubscribe !== undefined) state.unsubscribeUndici = unsubscribe;
 
   const runtimeNode = "@opentelemetry/instrumentation-runtime-node";
-  map[runtimeNode] = { captureUncaughtException: true, ...map[runtimeNode] };
+  const runtime = map[runtimeNode] ?? {};
+  map[runtimeNode] = {
+    captureUncaughtException: true,
+    ...runtime,
+    applyCustomExceptionAttributes: (error, eventType) => ({
+      ...exceptionAttributes(error),
+      ...runtime.applyCustomExceptionAttributes?.(error, eventType),
+    }),
+  };
 
   const disabled = getStringListFromEnv("OTEL_NODE_DISABLED_INSTRUMENTATIONS");
   const enabled = getStringListFromEnv("OTEL_NODE_ENABLED_INSTRUMENTATIONS");

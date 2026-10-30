@@ -122,7 +122,7 @@ describe("init", () => {
 
     expect(
       calls.map[0]?.["@opentelemetry/instrumentation-runtime-node"],
-    ).toEqual({
+    ).toMatchObject({
       captureUncaughtException: true,
     });
 
@@ -216,9 +216,38 @@ describe("init", () => {
 
     expect(
       calls.map[0]?.["@opentelemetry/instrumentation-runtime-node"],
-    ).toEqual({
+    ).toMatchObject({
       captureUncaughtException: false,
     });
+  });
+
+  it("adds the cause chain to the crash record, under the user's own attributes", () => {
+    init({
+      instrumentations: {
+        "@opentelemetry/instrumentation-runtime-node": {
+          applyCustomExceptionAttributes: () => ({ "app.release": "r1" }),
+        },
+      },
+    });
+
+    const config = calls.map[0]?.[
+      "@opentelemetry/instrumentation-runtime-node"
+    ] as {
+      applyCustomExceptionAttributes: (
+        e: unknown,
+        t: string,
+      ) => Record<string, unknown>;
+    };
+
+    const attributes = config.applyCustomExceptionAttributes(
+      new Error("outer", { cause: new Error("inner") }),
+      "uncaughtException",
+    );
+
+    expect(attributes["app.release"]).toBe("r1");
+    expect(attributes["exception.stacktrace"]).toContain(
+      "Caused by: Error: inner",
+    );
   });
 
   it("constructs nothing with OTEL_SDK_DISABLED=true", () => {
