@@ -1,7 +1,8 @@
 "use strict";
 // CommonJS app: serves one request to itself, logs it, prints READY, then exits unless told
 // otherwise. --init calls init() with FIXTURE_OPTIONS; --serve keeps serving; --own-signal adds
-// an app SIGTERM handler; --crash throws; --reject leaves a rejected promise.
+// an app SIGTERM handler; --crash throws an error with a cause; --throw-value throws an object;
+// --reject leaves a rejected promise.
 const argv = process.argv.slice(2);
 if (argv.includes("--init")) {
   require("@clickhouse/clickstack-node").init(
@@ -34,7 +35,13 @@ server.listen(0, "127.0.0.1", () => {
 
       if (argv.includes("--crash")) {
         setTimeout(() => {
-          throw new Error("fixture crash");
+          throw new Error("fixture crash", {
+            cause: new TypeError("fixture cause"),
+          });
+        }, 0);
+      } else if (argv.includes("--throw-value")) {
+        setTimeout(() => {
+          throw { code: 1 };
         }, 0);
       } else if (argv.includes("--reject")) {
         void Promise.reject(new Error("fixture rejection"));

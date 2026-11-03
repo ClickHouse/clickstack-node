@@ -70,8 +70,8 @@ start logs a warning and does nothing. The rest is fixed:
 - Instrumentations: the upstream auto-instrumentations bundle with its defaults, plus `console`
   capture (`@opentelemetry/instrumentation-console`) and crash capture. To turn `console` capture
   off, add `console` to `OTEL_NODE_DISABLED_INSTRUMENTATIONS`. It is also off while
-  `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER` or `OTEL_LOGS_EXPORTER` includes `console`, because
-  those exporters print with `console`.
+  `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER` or `OTEL_LOGS_EXPORTER` includes `console`,
+  because those exporters print with `console`.
 - The router instrumentation is off. Express 5 is built on the `router` package, so with it every
   Express middleware gets a second span and every route error three exception events. To turn it
   on, list `router` in `OTEL_NODE_ENABLED_INSTRUMENTATIONS`, or set `enabled: true` for
@@ -183,7 +183,8 @@ What the package adds to this:
 - `console` log records: the formatted message as the body, a severity number per method (`debug`
   5, `log` and `info` 9, `warn` 13, `error` 17) and the active trace context.
 - A FATAL log record (severity number 21, body `exception`) with `exception.type`,
-  `exception.message` and `exception.stacktrace` for an uncaught exception.
+  `exception.message` and `exception.stacktrace` for an uncaught exception
+  ([Errors](#errors)).
 - With capture on: `http.request.header.<name>` and `http.response.header.<name>` (string arrays),
   `http.request.body.content` and `http.response.body.content`, and `http.request.body.size` and
   `http.response.body.size` (bytes). The body keys are in development in the semantic conventions.
@@ -195,6 +196,13 @@ What the package adds to this:
   ([Lifecycle](#lifecycle)). It carries the active trace when the error comes from an asynchronous
   callback, such as a timer or a rejected promise. A request still open at the crash exports no
   span.
+- `exception.stacktrace` is the raw stack, with the error's `cause` chain, up to five deep,
+  appended as `Caused by: Name: message` sections. A thrown value that is not an error, such as
+  `throw { code: 1 }`, is recorded as JSON text in `exception.message`; Node.js itself wraps a
+  rejection reason that is not an error in an `ERR_UNHANDLED_REJECTION` error.
+- Start TypeScript and bundled apps with `--enable-source-maps`, for example in `NODE_OPTIONS`, so
+  that stack traces point to your sources when the error happens. ClickStack maps only browser
+  stack traces.
 - An app `uncaughtException` listener takes over the exit: the FATAL record is still recorded, but
   the package neither prints the error nor exits, so await `flush()` before your listener ends the
   process. An app `unhandledRejection` listener turns crash capture off for rejections, because

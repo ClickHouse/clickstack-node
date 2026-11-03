@@ -89,8 +89,31 @@ describe("lifecycle", () => {
       expect(fatal?.attributes["exception.message"]).toMatch(
         /fixture (crash|rejection)/,
       );
+      if (arg === "--crash") {
+        expect(fatal?.attributes["exception.stacktrace"]).toMatch(
+          /^Error: fixture crash\n[\s\S]*\nCaused by: TypeError: fixture cause\n {4}at /,
+        );
+      }
     },
   );
+
+  it("records a thrown value that is not an error as JSON text", async () => {
+    const service = uniqueService();
+    const result = await run("app.cjs", {
+      nodeArgs: REGISTER,
+      args: ["--throw-value"],
+      env: env(service),
+    });
+
+    expect(result.code).toBe(1);
+
+    const { logs } = await waitFor(service, (t) =>
+      t.logs.some((l) => l.severityNumber === 21),
+    );
+    const fatal = logs.find((l) => l.severityNumber === 21);
+
+    expect(fatal?.attributes["exception.message"]).toBe('{"code":1}');
+  });
 
   it("flushes on a natural exit through beforeExit", async () => {
     const service = uniqueService();
