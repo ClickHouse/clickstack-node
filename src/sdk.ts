@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import type * as AutoInstrumentations from "@opentelemetry/auto-instrumentations-node";
 import type * as Console from "@opentelemetry/instrumentation-console";
 import type * as Resources from "@opentelemetry/resources";
@@ -19,23 +18,22 @@ export interface Sdk {
  * them takes hundreds of milliseconds, which apps that only import `flush` or `shutdown`, or set
  * `OTEL_SDK_DISABLED`, should not pay. They also have to load after the ES module loader hook:
  * builds that import `node:http` or `node:fs` as they load would keep the app's named imports of
- * those builtins unpatched.
+ * those builtins unpatched. The `require` calls take literal names, so that file tracers copy the
+ * packages (see tsdown.config.ts).
  *
  * @returns The SDK functions and classes.
  */
 export function loadSdk(): Sdk {
-  const load = createRequire(import.meta.url);
-  const auto = load(
-    "@opentelemetry/auto-instrumentations-node",
-  ) as typeof AutoInstrumentations;
-  const resources = load("@opentelemetry/resources") as typeof Resources;
+  const auto =
+    require("@opentelemetry/auto-instrumentations-node") as typeof AutoInstrumentations;
+  const resources = require("@opentelemetry/resources") as typeof Resources;
 
   return {
-    NodeSDK: (load("@opentelemetry/sdk-node") as typeof SdkNode).NodeSDK,
+    NodeSDK: (require("@opentelemetry/sdk-node") as typeof SdkNode).NodeSDK,
     getNodeAutoInstrumentations: auto.getNodeAutoInstrumentations,
     getResourceDetectors: auto.getResourceDetectors,
     ConsoleInstrumentation: (
-      load("@opentelemetry/instrumentation-console") as typeof Console
+      require("@opentelemetry/instrumentation-console") as typeof Console
     ).ConsoleInstrumentation,
     defaultResource: resources.defaultResource,
     resourceFromAttributes: resources.resourceFromAttributes,

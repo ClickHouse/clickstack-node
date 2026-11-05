@@ -137,7 +137,7 @@ usage.emit({
 });
 ```
 
-Set `authorization` on that exporter even if the other endpoint expects a different header: OTLP exporters also send the headers in `OTEL_EXPORTER_OTLP_HEADERS`, which hold the main ingestion key, and only a header with the same name replaces it. Shut the provider down before the process exits, or its last batch is lost.
+Set `authorization` on that exporter even if the other endpoint expects a different header: OTLP exporters also send the headers in `OTEL_EXPORTER_OTLP_HEADERS` and `OTEL_EXPORTER_OTLP_LOGS_HEADERS`, which hold the main ingestion key, and only a header with the same name replaces it. Their other headers, such as `x-tenant`, reach the other endpoint too. This exporter sends JSON, in which a `NaN` attribute value becomes `null`, and the collector then rejects the whole batch, so leave `NaN` values out. Shut the provider down before the process exits, or its last batch is lost.
 
 ## Behavior changes
 
@@ -163,7 +163,7 @@ Set `authorization` on that exporter even if the other endpoint expects a differ
 ### Crashes
 
 - **Crash capture is on for every entry point.** The old `init()` never installed its exception handlers, and neither did the preload unless `HDX_NODE_EXPERIMENTAL_EXCEPTION_CAPTURE=1` was set. Now every uncaught exception produces a record, is printed to stderr as Node prints it, and exits with code 1 after a bounded flush.
-- **The crash record changed shape.** It used to be a span named `<Type>: <message>` from the `@hyperdx/instrumentation-exception` scope, with `exception.parsed_stacktrace`, `exception.tags`, `exception.modules` and `app.*`, `device.*`, `os.*` and `host.cpu.*` attributes. It is now a FATAL log record from the `@opentelemetry/instrumentation-runtime-node` scope: body `exception`, severity number 21 and no severity text (ClickStack stores an empty `SeverityText`), with `exception.type`, `exception.message` and `exception.stacktrace`. Update saved searches and alerts, for example to `SeverityNumber = 21`.
+- **The crash record changed shape.** It used to be a span named `<Type>: <message>` from the `@hyperdx/instrumentation-exception` scope, with `exception.parsed_stacktrace`, `exception.tags`, `exception.modules` and `app.*`, `device.*`, `os.*` and `host.cpu.*` attributes. It is now a FATAL log record from the `@opentelemetry/instrumentation-runtime-node` scope: body `exception`, severity number 21 and no severity text (ClickStack stores an empty `SeverityText`), with `exception.type`, `exception.message` and `exception.stacktrace`. Update saved searches and alerts, for example to `SeverityNumber = 21`. An app `uncaughtException` listener that keeps the process running still produces one such record per exception, so these alerts also fire for errors the app survives.
 - **Unhandled rejections.** Only apps that set `HDX_NODE_EXPERIMENTAL_EXCEPTION_CAPTURE=1` or called `initSDK({ experimentalExceptionCapture: true })` had rejections recorded while the process kept running. Every other app already crashed on an unhandled rejection, as Node.js does by default. The new package follows Node.js: the process crashes, with a FATAL record. To restore record-and-continue, add your own listener:
 
   ```js

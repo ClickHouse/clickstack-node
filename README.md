@@ -228,8 +228,9 @@ request takes span and log record processors, which need plain `NodeSDK`
 - Start TypeScript and bundled apps with `--enable-source-maps`, for example in `NODE_OPTIONS`, so
   that stack traces point to your sources when the error happens. ClickStack maps only browser
   stack traces.
-- An app `uncaughtException` listener takes over the exit: the FATAL record is still recorded, but
-  the package neither prints the error nor exits, so flush before your listener ends the process:
+- An app `uncaughtException` listener takes over the exit: the FATAL record is still recorded, also
+  when the app keeps running, but the package neither prints the error nor exits, so flush before
+  your listener ends the process:
 
   ```js
   import { flush } from "@clickhouse/clickstack-node";
@@ -245,7 +246,10 @@ request takes span and log record processors, which need plain `NodeSDK`
 
 - Errors thrown in route handlers of instrumented frameworks, such as Express, Koa, Hapi and
   NestJS, or passed to `next(err)`, are recorded as `exception` events on the handler's span.
-  Recording them again yourself records each one twice.
+  Recording them again yourself records each one twice. Express instruments only the last handler
+  of a `use()` call with several, such as `router.use("/api", auth, apiRouter)`, so an error that
+  `auth` passes to `next(err)` is not recorded; a 5xx response still marks the server span as an
+  error.
 - Errors that your code catches are not recorded. Record them on the active span:
 
   ```js
@@ -293,6 +297,59 @@ request takes span and log record processors, which need plain `NodeSDK`
 
 - The flag does nothing in worker threads. `init` in a worker starts an SDK for that worker only.
 
+## Next.js
+
+Call `init` from `register()` in `instrumentation.ts`, in the Node.js runtime only, and keep the
+package out of the server bundle:
+
+```ts
+// instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { init } = await import("@clickhouse/clickstack-node");
+    init();
+  }
+}
+```
+
+```js
+// next.config.mjs
+export default {
+  serverExternalPackages: ["@clickhouse/clickstack-node"],
+};
+```
+
+- Next.js creates a server span of its own for each request, `GET /route`, which continues the
+  incoming trace. Next.js loads `node:http` before `register()` runs, so the HTTP instrumentation
+  adds its `GET` server span above it, and spans for outgoing requests, only once something else
+  loads `node:http`, such as an HTTP client.
+- Requests for static files can be half of the HTTP instrumentation's server spans. Ignoring them
+  drops every span of those requests; with `basePath`, put it in front of the path:
+
+  ```ts
+  init({
+    instrumentations: {
+      "@opentelemetry/instrumentation-http": {
+        ignoreIncomingRequestHook: (req) =>
+          req.url?.startsWith("/_next/static/") === true,
+      },
+    },
+  });
+  ```
+
+- Next.js sets `http.route` on the HTTP instrumentation's server span after the response may have
+  ended, which logs `Cannot execute the operation on ended Span` at the default log level.
+  `OTEL_LOG_LEVEL=error` hides these lines; export errors still print.
+- On SIGTERM or SIGINT, `next start` and the standalone `server.js` exit as soon as the server
+  closes, before the SDK's flush ends, so the last spans, logs and metrics are lost. With
+  `NEXT_MANUAL_SIG_HANDLE=true` in the server's environment, Next.js leaves signals to the SDK,
+  which flushes and exits, and no longer waits for requests in flight.
+- A warning such as `Error: 'import-in-the-middle' failed to wrap 'file:///app/node_modules/zod/index.js'`
+  means that the ES module loader hook could not wrap that module. It loads unchanged, and only an
+  instrumentation of that package would miss it. `--trace-warnings` shows the cause;
+  `NODE_OPTIONS=--disable-warning=Error` hides these lines, along with any other warning issued as
+  a plain error.
+
 ## Compatibility
 
 - Node.js 22.15 or later. CI runs the latest 22, 24 and 26. Windows is not tested.
@@ -313,8 +370,7 @@ request takes span and log record processors, which need plain `NodeSDK`
   through the ES module loader, past the transpiler. Both flags install the ES module loader hook.
 - Bundlers: code that a bundler inlined cannot be instrumented, and nothing warns. Keep this
   package and the instrumented libraries external (esbuild `--packages=external`, webpack
-  `externals`, Next.js `serverExternalPackages`). In Next.js, call `init` from `register()` in
-  `instrumentation.ts` when `process.env.NEXT_RUNTIME === "nodejs"`.
+  `externals`, Next.js `serverExternalPackages`); for Next.js, see [Next.js](#nextjs).
 - ClickStack: any version that accepts the ingestion key as a bare `authorization` header.
 
 ## License

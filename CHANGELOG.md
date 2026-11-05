@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.0.2
+
+### Fixed
+
+- Next.js `output: "standalone"`, and other builds that copy only the files their tracer finds, now
+  include the ES module loader hook. Webpack builds left it out, so the server started with a
+  warning and, in many apps, without HTTP spans. Turbopack builds left out its synchronous hooks
+  and fell back to `module.register()`.
+- Those builds now also include the OpenTelemetry packages that `init` loads when the app uses the
+  CommonJS build. Since 1.0.1 they were left out, so `init` could not start the SDK.
+
+### Documentation
+
+- README: a Next.js section (setup, the two server spans of a request, ignoring requests for static
+  files, "ended Span" warnings, flushing on SIGTERM with `NEXT_MANUAL_SIG_HANDLE=true`, and
+  import-in-the-middle warnings), errors in Express `use()` calls with several handlers, and FATAL
+  records for exceptions that an app `uncaughtException` listener survives.
+- Migration guide: for logs sent to a second endpoint, the other headers of
+  `OTEL_EXPORTER_OTLP_HEADERS` and `NaN` attribute values; alerts on FATAL records for exceptions
+  the app survives.
+
 ## 1.0.1
 
 ### Fixed
