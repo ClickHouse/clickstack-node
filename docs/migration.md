@@ -11,7 +11,9 @@ npm uninstall @hyperdx/node-opentelemetry
 npm install @clickhouse/clickstack-node
 ```
 
-Uninstall the old package first: running both starts two SDKs.
+Uninstall the old package first: running both starts two SDKs. If the app imports `@opentelemetry/api` itself, install `@opentelemetry/api@~1.9.1`: npm's latest 1.10 is for OpenTelemetry JS 3.x and outside this package's range.
+
+The new package always starts. The old preload did nothing unless `HYPERDX_API_KEY` or `OTEL_EXPORTER_OTLP_HEADERS` was set; the new one sends to `http://localhost:4318` when no endpoint is set, so an image that never sent telemetry starts sending, and one with a collector on localhost ingests the app's own telemetry. Set `OTEL_SDK_DISABLED=true` where the app should send nothing, or call `init()` only when you want telemetry. Only `true` disables it; the old `=1` is ignored with a warning.
 
 | Old entry point                                                   | Replacement                                                                                                           |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -20,7 +22,9 @@ Uninstall the old package first: running both starts two SDKs.
 | `NODE_OPTIONS="-r @hyperdx/node-opentelemetry/build/src/tracing"` | `NODE_OPTIONS="--import @clickhouse/clickstack-node/register"`                                                        |
 | `init(config)` or `initSDK(config)` in code                       | `init(options)`, with the renamed options below                                                                       |
 
-The new entry point instruments ES module apps too, which the old package never did. `-r` (`--require`) suits tools that preload CommonJS modules, and CommonJS TypeScript on Node.js 22 and on 24 before 24.12.
+The new entry point instruments ES module apps too, which the old package never did, with either flag: both install the ES module loader hook. Keep `-r` (`--require`) with ts-node and other transpilers that hook `require`: any `--import`, also in `NODE_OPTIONS`, makes Node.js load the `.ts` entry through the ES module loader, past the transpiler. `-r` is also the flag for CommonJS TypeScript on Node.js 22 and on 24 before 24.12.
+
+A preload file of your own that calls `init()` also runs in every worker thread, such as the workers of pino transports, and starts an SDK in each. Guard the call with `isMainThread` from `node:worker_threads`; the register entry does this already.
 
 Remove every `npx opentelemetry-instrument` call from package scripts and container images. Once the old package is uninstalled, `npx` would download whatever package owns that name on the npm registry.
 
@@ -88,23 +92,52 @@ The old `init()` forced `consoleCapture`, `experimentalExceptionCapture`, `sentr
 
 The package exports `init`, `flush`, `shutdown`, `withFlush` and the `ClickStackNodeOptions` type, from `@clickhouse/clickstack-node`. The only other entry point is `@clickhouse/clickstack-node/register`.
 
-| Old export or path                                          | Replacement                                                                                                                                                                                                                                                                     |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `init(config)`, `initSDK(config)`                           | `init(options)`                                                                                                                                                                                                                                                                 |
-| type `SDKConfig`                                            | type `ClickStackNodeOptions`                                                                                                                                                                                                                                                    |
-| `shutdown()`                                                | `shutdown(timeoutMillis?)`, bounded (5000 ms by default) and never rejects; also `flush(timeoutMillis?)`                                                                                                                                                                        |
-| `setTraceAttributes(attributes)`                            | Removed. Use upstream's `BaggageSpanProcessor` and `BaggageLogRecordProcessor` with plain `NodeSDK`, and rename the keys (see [Trace attributes](#trace-attributes))                                                                                                            |
-| `recordException(error)`                                    | The upstream span API in your error handler: `trace.getActiveSpan()?.recordException(error)`, plus `span.setStatus({ code: SpanStatusCode.ERROR })` if the request should count as failed. The old function created a separate ERROR span when there was no active span         |
-| `setupExpressErrorHandler(app)`                             | Delete it. `@opentelemetry/instrumentation-express` records errors thrown in a route or middleware                                                                                                                                                                              |
-| `setupKoaErrorHandler(app)`                                 | Delete it. `@opentelemetry/instrumentation-koa` records errors, and they now reach Koa's default handler (a 500 response and a stderr line) instead of being swallowed                                                                                                          |
-| `getWinstonTransport(level, options)`, `getWinsonTransport` | `npm install @opentelemetry/winston-transport`: the bundled winston instrumentation then adds its transport automatically, or add `OpenTelemetryTransportV3` to `transports` yourself                                                                                           |
-| `getPinoTransport(level, options)`                          | Delete the transport target. The bundled pino instrumentation sends pino records                                                                                                                                                                                                |
-| `getPinoMixinFunction()`                                    | Delete it. The pino instrumentation adds `trace_id`, `span_id` and `trace_flags` to each record                                                                                                                                                                                 |
-| `registerGCPCloudFunctionEventHandler(handler, config)`     | Preload the register entry and flush at the end of each event: `functions.cloudEvent('name', async (event) => { try { await handler(event); } finally { await flush(); } })`. This does not create the consumer span or read the Pub/Sub parent context, as the old handler did |
-| `getHyperDXMetricReader()` (from `build/src/metrics`)       | For host metrics, `init({ instrumentations: { '@opentelemetry/instrumentation-host-metrics': { enabled: true } } })`; otherwise `OTEL_METRICS_EXPORTER` and `OTEL_METRIC_EXPORT_INTERVAL`                                                                                       |
-| `bin` `opentelemetry-instrument`                            | `node --import @clickhouse/clickstack-node/register app.js`                                                                                                                                                                                                                     |
-| `build/src/tracing`                                         | `@clickhouse/clickstack-node/register`                                                                                                                                                                                                                                          |
-| `build/src/otel-logger/pino`, any other `build/src/*` path  | Not available: the package's `exports` map allows only `.`, `./register` and `./package.json`                                                                                                                                                                                   |
+| Old export or path                                          | Replacement                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init(config)`, `initSDK(config)`                           | `init(options)`                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| type `SDKConfig`                                            | type `ClickStackNodeOptions`                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `shutdown()`                                                | `shutdown(timeoutMillis?)`, bounded (5000 ms by default) and never rejects; also `flush(timeoutMillis?)`                                                                                                                                                                                                                                                                                                                          |
+| `setTraceAttributes(attributes)`                            | Removed. Use upstream's `BaggageSpanProcessor` and `BaggageLogRecordProcessor` with plain `NodeSDK`, and rename the keys (see [Trace attributes](#trace-attributes))                                                                                                                                                                                                                                                              |
+| `recordException(error)`                                    | The upstream span API in your error handler: `trace.getActiveSpan()?.recordException(error)`, plus `span.setStatus({ code: SpanStatusCode.ERROR })` if the request should count as failed. The old function created a separate ERROR span when there was no active span. Errors thrown in, or passed with `next(err)` to, Express, Koa, Hapi or NestJS handlers are already recorded; recording them again records each one twice |
+| `setupExpressErrorHandler(app)`                             | Delete it. `@opentelemetry/instrumentation-express` records errors thrown in a route or middleware                                                                                                                                                                                                                                                                                                                                |
+| `setupKoaErrorHandler(app)`                                 | Delete it. `@opentelemetry/instrumentation-koa` records errors, and they now reach Koa's default handler (a 500 response and a stderr line) instead of being swallowed                                                                                                                                                                                                                                                            |
+| `getWinstonTransport(level, options)`, `getWinsonTransport` | `npm install @opentelemetry/winston-transport@0.34.0` (0.35 needs OpenTelemetry JS 3.x): the bundled winston instrumentation then adds its transport automatically, or add `OpenTelemetryTransportV3` to `transports` yourself                                                                                                                                                                                                    |
+| `getPinoTransport(level, options)`                          | Delete the transport target. The bundled pino instrumentation sends pino records; for logs sent to another endpoint, see [Logs to a second endpoint](#logs-to-a-second-endpoint)                                                                                                                                                                                                                                                  |
+| `getPinoMixinFunction()`                                    | Delete it. The pino instrumentation adds `trace_id`, `span_id` and `trace_flags` to each record                                                                                                                                                                                                                                                                                                                                   |
+| `registerGCPCloudFunctionEventHandler(handler, config)`     | Preload the register entry and flush at the end of each event: `functions.cloudEvent('name', async (event) => { try { await handler(event); } finally { await flush(); } })`. This does not create the consumer span or read the Pub/Sub parent context, as the old handler did                                                                                                                                                   |
+| `getHyperDXMetricReader()` (from `build/src/metrics`)       | For host metrics, `init({ instrumentations: { '@opentelemetry/instrumentation-host-metrics': { enabled: true } } })`; otherwise `OTEL_METRICS_EXPORTER` and `OTEL_METRIC_EXPORT_INTERVAL`                                                                                                                                                                                                                                         |
+| `bin` `opentelemetry-instrument`                            | `node --import @clickhouse/clickstack-node/register app.js`                                                                                                                                                                                                                                                                                                                                                                       |
+| `build/src/tracing`                                         | `@clickhouse/clickstack-node/register`                                                                                                                                                                                                                                                                                                                                                                                            |
+| `build/src/otel-logger/pino`, any other `build/src/*` path  | Not available: the package's `exports` map allows only `.`, `./register` and `./package.json`                                                                                                                                                                                                                                                                                                                                     |
+
+### Logs to a second endpoint
+
+`getPinoTransport(level, { headers, baseUrl, service })` could also send some logs to another endpoint with another key. Give those logs a logger provider of their own, at the versions this package uses, and log through it rather than through pino, whose bundled instrumentation copies pino records into the main pipeline:
+
+```js
+const {
+  LoggerProvider,
+  BatchLogRecordProcessor,
+} = require("@opentelemetry/sdk-logs"); // ^0.223.0
+const { OTLPLogExporter } = require("@opentelemetry/exporter-logs-otlp-http"); // ^0.223.0
+const { resourceFromAttributes } = require("@opentelemetry/resources"); // ^2.12.0
+
+const exporter = new OTLPLogExporter({
+  url: "https://other-collector.example.com:4318/v1/logs",
+  headers: { authorization: process.env.OTHER_INGESTION_KEY },
+});
+const usage = new LoggerProvider({
+  resource: resourceFromAttributes({ "service.name": "usage-stats" }),
+  processors: [new BatchLogRecordProcessor({ exporter })],
+}).getLogger("usage");
+
+usage.emit({
+  body: "report generated",
+  attributes: { "app.report.id": "r-42" },
+});
+```
+
+Set `authorization` on that exporter even if the other endpoint expects a different header: OTLP exporters also send the headers in `OTEL_EXPORTER_OTLP_HEADERS`, which hold the main ingestion key, and only a header with the same name replaces it. Shut the provider down before the process exits, or its last batch is lost.
 
 ## Behavior changes
 
@@ -197,7 +230,7 @@ Console capture now uses the upstream `@opentelemetry/instrumentation-console`. 
 
 ### Trace attributes
 
-`setTraceAttributes()` and `betaMode` have no replacement in this package. The upstream alternative is `BaggageSpanProcessor` (`@opentelemetry/baggage-span-processor`) and `BaggageLogRecordProcessor` (`@opentelemetry/baggage-log-record-processor`) with plain `NodeSDK` ([span processor](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/baggage-span-processor#readme), [log record processor](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/baggage-log-record-processor#readme)). It differs from the old feature:
+`setTraceAttributes()` and `betaMode` have no replacement in this package. To search requests by user or team, set the attributes on the request's server span ([Attributes on a request](../README.md#attributes-on-a-request)); child spans and log records do not get them. To tag every span and log record, the upstream alternative is `BaggageSpanProcessor` (`@opentelemetry/baggage-span-processor@0.5.0`) and `BaggageLogRecordProcessor` (`@opentelemetry/baggage-log-record-processor@0.24.0`; newer releases need OpenTelemetry JS 3.x) with plain `NodeSDK` ([span processor](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/baggage-span-processor#readme), [log record processor](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/baggage-log-record-processor#readme)). It differs from the old feature:
 
 - Baggage is propagated to downstream services in the `baggage` header, while the old attributes stayed in the process. Never put secrets in it.
 - The entries reach spans that start after you set the baggage, and log records emitted in that context. Spans that are already open, such as the server span, do not get them.
@@ -220,6 +253,7 @@ Console capture now uses the upstream `@opentelemetry/instrumentation-console`. 
 - The old Express error handler recorded only errors with status 500 or higher. The upstream Express instrumentation records every error thrown in a route or middleware, so 4xx errors raised as exceptions now count as errors.
 - The router instrumentation is off by default. In Express 5 apps each middleware has one span, from `@opentelemetry/instrumentation-express`, and each route error one exception event; searches on the `@opentelemetry/instrumentation-router` scope find nothing. Express 4 apps are unaffected.
 - No cloud resource detectors by default (see `OTEL_NODE_RESOURCE_DETECTORS` above).
+- Host metrics use current names: `system.network.dropped` is now `system.network.packet.dropped`, and the `system.cpu.state` attribute is now `cpu.mode`. Update dashboards. They are turned on in code (the `instrumentations` option); there is no environment-only switch, because `OTEL_NODE_ENABLED_INSTRUMENTATIONS` turns off every instrumentation it does not list.
 
 ### Sentry
 
@@ -234,12 +268,12 @@ The old Sentry integration is gone. `@sentry/node` runs next to this package wit
 
 ## @hyperdx/node-logger
 
-| `@hyperdx/node-logger`                            | Replacement                                                                                                                                |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `HyperDXWinston` transport                        | `@opentelemetry/winston-transport`, installed next to this package; the bundled winston instrumentation adds it automatically              |
-| pino target `@hyperdx/node-logger/build/src/pino` | Delete it; the bundled pino instrumentation sends pino records                                                                             |
-| `HyperDXNestLoggerModule`                         | A NestJS logger built on winston or pino; the bundled instrumentations send its records (winston needs `@opentelemetry/winston-transport`) |
-| `HyperDXLogger.postMessage()`                     | The Logs API: `logs.getLogger('app').emit({ body, severityNumber })` from `@opentelemetry/api-logs`                                        |
+| `@hyperdx/node-logger`                            | Replacement                                                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HyperDXWinston` transport                        | `@opentelemetry/winston-transport@0.34.0`, installed next to this package; the bundled winston instrumentation adds it automatically              |
+| pino target `@hyperdx/node-logger/build/src/pino` | Delete it; the bundled pino instrumentation sends pino records                                                                                    |
+| `HyperDXNestLoggerModule`                         | A NestJS logger built on winston or pino; the bundled instrumentations send its records (winston needs `@opentelemetry/winston-transport@0.34.0`) |
+| `HyperDXLogger.postMessage()`                     | The Logs API: `logs.getLogger('app').emit({ body, severityNumber })` from `@opentelemetry/api-logs`                                               |
 
 Its variables are covered above: `HYPERDX_API_KEY` becomes `OTEL_EXPORTER_OTLP_HEADERS`, and `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, `OTEL_BLRP_*` and `OTEL_LOG_LEVEL` keep their meaning. `HYPERDX_API_URL` was never used.
 

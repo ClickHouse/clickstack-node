@@ -3,20 +3,11 @@
 import * as workerThreads from "node:worker_threads";
 import { trace, type TracerProvider } from "@opentelemetry/api";
 import {
-  getNodeAutoInstrumentations,
-  getResourceDetectors,
-} from "@opentelemetry/auto-instrumentations-node";
-import {
   getBooleanFromEnv,
   getStringFromEnv,
   getStringListFromEnv,
 } from "@opentelemetry/core";
-import { ConsoleInstrumentation } from "@opentelemetry/instrumentation-console";
-import {
-  defaultResource,
-  resourceFromAttributes,
-} from "@opentelemetry/resources";
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import type { NodeSDK } from "@opentelemetry/sdk-node";
 import {
   ATTR_DEPLOYMENT_ENVIRONMENT_NAME,
   ATTR_TELEMETRY_DISTRO_NAME,
@@ -28,6 +19,7 @@ import { apiRegistry, report, warnOnce, withStartupLogger } from "./env.ts";
 import { exceptionAttributes } from "./exception.ts";
 import { installEsmHook } from "./hook.ts";
 import { flush, installLifecycle } from "./lifecycle.ts";
+import { loadSdk } from "./sdk.ts";
 import { getState } from "./state.ts";
 import { VERSION } from "./version.ts";
 
@@ -72,7 +64,8 @@ function start(options: ClickStackNodeOptions): void {
 
   // Instrumentation constructors patch modules and the NodeSDK constructor installs diag, so
   // nothing may be constructed when the SDK is disabled.
-  if (getBooleanFromEnv("OTEL_SDK_DISABLED")) return;
+  // Read under the startup logger, so upstream's warning about a value such as `1` is printed.
+  if (withStartupLogger(() => getBooleanFromEnv("OTEL_SDK_DISABLED"))) return;
 
   const state = getState();
   const registry = apiRegistry();
@@ -97,7 +90,18 @@ function start(options: ClickStackNodeOptions): void {
     );
   }
 
-  const bodies = getBooleanFromEnv("CLICKSTACK_CAPTURE_HTTP_BODY");
+  const {
+    NodeSDK,
+    getNodeAutoInstrumentations,
+    getResourceDetectors,
+    ConsoleInstrumentation,
+    defaultResource,
+    resourceFromAttributes,
+  } = loadSdk();
+
+  const bodies = withStartupLogger(() =>
+    getBooleanFromEnv("CLICKSTACK_CAPTURE_HTTP_BODY"),
+  );
   const { map, unsubscribe } = composeInstrumentationConfig(
     options.instrumentations,
     bodies,

@@ -18,7 +18,8 @@ npm install @clickhouse/clickstack-node
 
 The package needs Node.js 22.15 or later and ships ES module and CommonJS builds.
 `@opentelemetry/api` is a peer dependency, which npm installs automatically, so the app and the
-SDK share one copy.
+SDK share one copy. If the app imports it too, install `@opentelemetry/api@~1.9.1`: npm's latest
+1.10 is for OpenTelemetry JS 3.x and outside this package's range.
 
 ## Quick start
 
@@ -49,7 +50,9 @@ init({
 ```
 
 Static imports run before any code in an ES module, so an ES module app calls `init` in a file of
-its own and preloads it: `node --import ./instrumentation.mjs server.mjs`.
+its own and preloads it: `node --import ./instrumentation.mjs server.mjs`. A preload file also runs
+in every worker thread, such as the workers of pino transports, and each `init` there starts an
+SDK. Guard the call with `isMainThread` from `node:worker_threads`, as the register entry does.
 
 | Option                       | Environment variable (wins)                                          | Default                                    | Meaning                                                                                                                                                       |
 | ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -189,6 +192,28 @@ What the package adds to this:
   `http.request.body.content` and `http.response.body.content`, and `http.request.body.size` and
   `http.response.body.size` (bytes). The body keys are in development in the semantic conventions.
 
+## Attributes on a request
+
+To find a request by user or tenant, set the attributes on its server span. The framework
+instrumentations make each middleware and handler span the active span, so
+`trace.getActiveSpan()` in middleware returns that short span, not the request's:
+
+```js
+import { context } from "@opentelemetry/api";
+import { getRPCMetadata } from "@opentelemetry/core"; // @opentelemetry/core@^2.12.0
+
+app.use((req, res, next) => {
+  getRPCMetadata(context.active())?.span?.setAttributes({
+    "user.id": req.user.id,
+  });
+  next();
+});
+```
+
+Child spans and log records do not get these attributes. Tagging every span and log record of a
+request takes span and log record processors, which need plain `NodeSDK`
+([migration guide](docs/migration.md#trace-attributes)).
+
 ## Errors
 
 - Uncaught exceptions, and unhandled rejections under Node's default
@@ -204,11 +229,23 @@ What the package adds to this:
   that stack traces point to your sources when the error happens. ClickStack maps only browser
   stack traces.
 - An app `uncaughtException` listener takes over the exit: the FATAL record is still recorded, but
-  the package neither prints the error nor exits, so await `flush()` before your listener ends the
-  process. An app `unhandledRejection` listener turns crash capture off for rejections, because
-  Node.js then no longer treats them as crashes.
+  the package neither prints the error nor exits, so flush before your listener ends the process:
+
+  ```js
+  import { flush } from "@clickhouse/clickstack-node";
+
+  process.on("uncaughtException", (err) => {
+    console.error(err);
+    void flush().finally(() => process.exit(1));
+  });
+  ```
+
+  An app `unhandledRejection` listener turns crash capture off for rejections, because Node.js then
+  no longer treats them as crashes.
+
 - Errors thrown in route handlers of instrumented frameworks, such as Express, Koa, Hapi and
-  NestJS, are recorded as `exception` events on the handler's span.
+  NestJS, or passed to `next(err)`, are recorded as `exception` events on the handler's span.
+  Recording them again yourself records each one twice.
 - Errors that your code catches are not recorded. Record them on the active span:
 
   ```js
@@ -271,7 +308,9 @@ What the package adds to this:
   instrumentation replaces on the package's exports. With `import grpc from "@grpc/grpc-js"`, gRPC
   client calls get no spans; use `import * as grpc from "@grpc/grpc-js"` or named imports.
 - TypeScript: CommonJS TypeScript fails under any ES module loader hook on Node.js 22 and on 24.0
-  to 24.11, so use `--require` there.
+  to 24.11, so use `--require` there. With ts-node, or any transpiler that hooks `require`, always
+  use `--require`: any `--import`, also in `NODE_OPTIONS`, makes Node.js load the `.ts` entry
+  through the ES module loader, past the transpiler. Both flags install the ES module loader hook.
 - Bundlers: code that a bundler inlined cannot be instrumented, and nothing warns. Keep this
   package and the instrumented libraries external (esbuild `--packages=external`, webpack
   `externals`, Next.js `serverExternalPackages`). In Next.js, call `init` from `register()` in
