@@ -10,6 +10,9 @@
   and fell back to `module.register()`.
 - Those builds now also include the OpenTelemetry packages that `init` loads when the app uses the
   CommonJS build. Since 1.0.1 they were left out, so `init` could not start the SDK.
+- `init` now instruments `node:http` and `node:https` even when they were loaded before it, as
+  Next.js loads `node:http` before `register()`. They were patched only when loaded again, which
+  with an `https://` endpoint might never happen, so the server recorded no HTTP spans.
 
 ### Documentation
 

@@ -69,7 +69,7 @@ describe("Next.js standalone output", () => {
     ["webpack", ["--webpack"]],
     ["Turbopack", []],
   ])(
-    "built with %s, keeps the loader hook, which instruments node:http",
+    "built with %s, keeps the loader hook and instruments node:http",
     async (_bundler, flags) => {
       await rm(join(app, ".next"), { recursive: true, force: true });
       await exec(
@@ -102,7 +102,11 @@ describe("Next.js standalone output", () => {
           ...exportTo(service),
           PORT: port,
           HOSTNAME: "127.0.0.1",
-          OTEL_BSP_SCHEDULE_DELAY: "100",
+          // Next.js loads node:http before register(), and the first export loads it again (the
+          // OTLP exporter imports it), which patches it. With only traces, at the default batch
+          // delay, the request comes first, as it always does with an https endpoint.
+          OTEL_METRICS_EXPORTER: "none",
+          OTEL_LOGS_EXPORTER: "none",
         },
       });
 
@@ -121,7 +125,6 @@ describe("Next.js standalone output", () => {
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
 
-        // Next.js's own spans come without the hook; the HTTP instrumentation's need it.
         await waitFor(service, (t) =>
           t.spans.some(
             (s) =>

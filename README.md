@@ -319,10 +319,8 @@ export default {
 };
 ```
 
-- Next.js creates a server span of its own for each request, `GET /route`, which continues the
-  incoming trace. Next.js loads `node:http` before `register()` runs, so the HTTP instrumentation
-  adds its `GET` server span above it, and spans for outgoing requests, only once something else
-  loads `node:http`, such as an HTTP client.
+- Each request has two server spans: the HTTP instrumentation's `GET`, which continues the
+  incoming trace, and Next.js's own `GET /route` under it.
 - Requests for static files can be half of the HTTP instrumentation's server spans. Ignoring them
   drops every span of those requests; with `basePath`, put it in front of the path:
 
