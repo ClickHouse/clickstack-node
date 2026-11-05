@@ -123,6 +123,17 @@ describe("register entry", () => {
     await waitFor(service, delivered);
   });
 
+  it("warns about a boolean variable that is not true or false", async () => {
+    const service = uniqueService();
+    const result = await run("app.cjs", {
+      nodeArgs: ["--require", REGISTER],
+      env: { ...exportTo(service), OTEL_SDK_DISABLED: "1" },
+    });
+
+    expect(result.code).toBe(0);
+    expect(result.stderr).toContain("Unknown value '1' for OTEL_SDK_DISABLED");
+  });
+
   it("does nothing with OTEL_SDK_DISABLED=true", async () => {
     const service = uniqueService();
     const result = await run("app.cjs", {
