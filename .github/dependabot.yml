@@ -33,3 +33,14 @@ updates:
       # typescript-eslint 8 supports TypeScript below 6.1.
       - dependency-name: typescript
         versions: [">=6.1.0"]
+  # The Next.js release that the standalone output test builds.
+  - package-ecosystem: npm
+    directory: /e2e/fixtures/nextjs
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      nextjs:
+        patterns: ["*"]

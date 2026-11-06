@@ -186,6 +186,12 @@ function start(options: ClickStackNodeOptions): void {
   sdk.start();
   state.sdk = sdk;
 
+  // A module is patched when it loads, so one loaded before init() waits for its next load, which
+  // may never come: Next.js loads node:http before register(), and an https endpoint makes the OTLP
+  // exporter load only node:https. require-in-the-middle also sees process.getBuiltinModule().
+  process.getBuiltinModule("node:http");
+  process.getBuiltinModule("node:https");
+
   if (consoleCapture) {
     // AWS Lambda's runtime replaces the console methods after preloads; withFlush compares
     // against this reference and installs console capture again.

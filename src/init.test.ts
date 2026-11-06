@@ -130,6 +130,20 @@ describe("init", () => {
     expect(calls.consoles).toBe(1);
   });
 
+  it("loads node:http and node:https once the SDK has started, so they are patched now", () => {
+    const loaded: string[] = [];
+    const original = process.getBuiltinModule.bind(process);
+    vi.spyOn(process, "getBuiltinModule").mockImplementation((id: string) => {
+      if (id.includes("http"))
+        loaded.push(`${id} started=${String(calls.started)}`);
+      return original(id);
+    });
+
+    init();
+
+    expect(loaded).toEqual(["node:http started=1", "node:https started=1"]);
+  });
+
   it("adds deployment.environment.name from the environment option", () => {
     init({ environment: "staging" });
     const resource = calls.config[0]?.["resource"] as {

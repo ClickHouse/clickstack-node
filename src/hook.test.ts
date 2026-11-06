@@ -9,17 +9,11 @@ const mod = vi.hoisted(() => ({
 }));
 
 vi.mock("node:module", () => ({
-  createRequire: () =>
-    Object.assign(
-      () => {
-        if (mod.syncHooks === undefined)
-          throw new Error("require(esm) is disabled");
-        return mod.syncHooks;
-      },
-      {
-        resolve: () => "/node_modules/@opentelemetry/instrumentation/hook.mjs",
-      },
-    ),
+  createRequire: () => () => {
+    if (mod.syncHooks === undefined)
+      throw new Error("require(esm) is disabled");
+    return mod.syncHooks;
+  },
   register: (url: unknown) => mod.registered.push(url),
   registerHooks: (hooks: { resolve: ResolveHookSync }) => {
     mod.resolveHook = hooks.resolve;
@@ -53,8 +47,8 @@ describe("installEsmHook", () => {
       mod.syncHooks = syncHooks;
 
       expect(installEsmHook()).toBe("async");
-      expect(String(mod.registered[0])).toBe(
-        "file:///node_modules/@opentelemetry/instrumentation/hook.mjs",
+      expect(String(mod.registered[0])).toMatch(
+        /^file:\/\/.*\/node_modules\/@opentelemetry\/instrumentation\/hook\.mjs$/,
       );
     },
   );

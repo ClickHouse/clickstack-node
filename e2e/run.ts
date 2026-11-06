@@ -28,10 +28,25 @@ export interface RunOptions {
 }
 
 /**
+ * The environment of this process without inherited `OTEL_*`, `CLICKSTACK_*`, `NODE_OPTIONS` and
+ * `AWS_LAMBDA_*`, for child processes.
+ *
+ * @returns The environment.
+ */
+export function childEnv(): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (/^(OTEL_|CLICKSTACK_|NODE_OPTIONS$|AWS_LAMBDA_)/.test(key))
+      Reflect.deleteProperty(env, key);
+  }
+
+  return env;
+}
+
+/**
  * Runs a fixture from `e2e/fixtures` with the repo root as working directory, so
  * `@clickhouse/clickstack-node` resolves to the built `dist` through the package self-reference.
- * Inherited `OTEL_*`, `CLICKSTACK_*`, `NODE_OPTIONS` and `AWS_LAMBDA_*` are cleared. The child runs
- * on {@link NODE}.
+ * The child gets {@link childEnv} and runs on {@link NODE}.
  *
  * @param fixture - File name under `e2e/fixtures`.
  * @param options - Flags, arguments, environment and an optional signal.
@@ -41,12 +56,7 @@ export function run(
   fixture: string,
   options: RunOptions = {},
 ): Promise<Result> {
-  const env: Record<string, string | undefined> = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (/^(OTEL_|CLICKSTACK_|NODE_OPTIONS$|AWS_LAMBDA_)/.test(key))
-      Reflect.deleteProperty(env, key);
-  }
-
+  const env = childEnv();
   const script = fileURLToPath(new URL(`fixtures/${fixture}`, import.meta.url));
   const child = spawn(
     NODE,

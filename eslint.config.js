@@ -57,7 +57,15 @@ export default defineConfig([
     },
   },
   {
-    files: ["e2e/fixtures/**/*.{cjs,mjs}"],
+    // The ESM build declares `require` in these files only (tsdown.config.ts).
+    files: ["src/hook.ts", "src/sdk.ts"],
+    rules: {
+      "no-restricted-globals": ["error", "__filename", "__dirname"],
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
+    files: ["e2e/fixtures/**/*.{cjs,mjs,js}"],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
   },

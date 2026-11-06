@@ -37,7 +37,7 @@ const restoreFormat: ResolveHookSync = (specifier, context, nextResolve) => {
  *
  * import-in-the-middle is loaded from `@opentelemetry/instrumentation`'s own location: only the
  * copy next to it sees the `Hook()` calls instrumentations make. The package's own dependency on
- * it is never imported; it raises that copy to the 3.5 line, whose behavior the repair above
+ * it is never loaded; it raises that copy to the 3.5 line, whose behavior the repair above
  * expects (`@opentelemetry/instrumentation` accepts any 3.x). Synchronous hooks
  * (`module.registerHooks`) are used where import-in-the-middle supports them; `module.register`,
  * which Node 26 deprecates (DEP0205), is the fallback for older Node versions and for runtimes
@@ -48,9 +48,9 @@ const restoreFormat: ResolveHookSync = (specifier, context, nextResolve) => {
  */
 export function installEsmHook(): EsmHookMode {
   // `hook.mjs` is exported on both the 2.x and 3.x lines; `package.json` is not exported on 3.x.
-  const hookFile = nodeModule
-    .createRequire(import.meta.url)
-    .resolve("@opentelemetry/instrumentation/hook.mjs");
+  const hookFile = require.resolve("@opentelemetry/instrumentation/hook.mjs");
+  // Only so that file tracers copy it: tracers do not follow the require from `hookFile` below.
+  require.resolve("import-in-the-middle/register-hooks.mjs");
 
   let syncHooks: SyncHooks | undefined;
   try {

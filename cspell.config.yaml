@@ -15,11 +15,13 @@ words:
   - clickstack
   - esac
   - hyperdx
+  - nextjs
   - nvmrc
   - publint
   - serviceinstance
   - startswith
   - TENCENTCLOUD
+  - Turbopack
   - undici
   - unstub
   - vitest
